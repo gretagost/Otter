@@ -59,7 +59,6 @@ getAccession2taxid(outDir = ".",
 
 read.nodes.sql('nodes.dmp')
 read.names.sql('names.dmp')
-
 read.accession2taxid(list.files('.','accession2taxid.gz$'),'accessionTaxa.sql')
 
 read.names.sql('names.dmp','accessionTaxa.sql')
@@ -110,4 +109,41 @@ db12s<- read.fasta(file = "spraint_search_seqs12S.fasta", seqtype = "DNA", as.st
 #You can also check the .fasta file in the working folder
 db12s_names<- attr(db12s, "name")
 
+#Now we have an alternative to prepareDatabase function
+
 library(taxonomizr)
+
+#Download accession2taxid files from NCBI in taxonomizr
+getAccession2taxid(outDir = ".",
+                   baseUrl = "https://ftp.ncbi.nih.gov/pub/taxonomy/accession2taxid/",
+                   types = c("nucl_gb","nucl_wgs"))
+
+#Download names and nodes files from NCBI
+getNamesAndNodes(outDir = ".",
+                 url = "https://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz",
+                 fileNames = c("names.dmp", "nodes.dmp"))
+
+#Create a SQLite database
+read.nodes.sql('nodes.dmp')
+read.names.sql('names.dmp')
+read.accession2taxid(list.files('.', 'accession2taxid.gz$'), 'accessionTaxa.sql')
+
+read.names.sql('names.dmp','accessionTaxa.sql')
+read.nodes.sql('nodes.dmp','accessionTaxa.sql')
+
+db12s_names<- attr(db12s, "name")
+blastAccessions<- db12s_names 
+ids<- accessionToTaxa(blastAccessions, 'accessionTaxa.sql')
+taxo<- getTaxonomy(ids,'accessionTaxa.sql')
+head(taxo)
+summary(as.factor(taxo))
+
+taxa.df<-data.frame(taxo)
+head(taxa.df)
+
+write.csv(taxa.df,"taxaDF.csv")
+taxo_tames<-paste(taxa.df[,1],taxa.df[,2],taxa.df[,3],taxa.df[,4],taxa.df[,5],taxa.df[,6],taxa.df[,7],sep=";")
+species_tames<-paste(db16s_names, taxa.df[,6],taxa.df[,7],sep=" ")
+
+write.fasta(sequences = db12s, names = taxo_tames, nbchar = 10, file.out = "12S_seqs_DB_WithTaxonomy.fasta")
+write.fasta(sequences = db12s, names = species_tames, nbchar = 10, file.out = "12S_seqs_DB_WithSpecies.fasta")
