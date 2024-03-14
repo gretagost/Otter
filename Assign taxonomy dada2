@@ -1,0 +1,72 @@
+#This script is to assign taxonomy from a 16S db with dada2 R package
+
+setwd("~/Cilento/16S")
+path<- "~/Cilento/16S"
+
+fnFs<- sort(list.files(path, pattern="_R1_001.fastq", full.names = TRUE))
+fnRs<- sort(list.files(path, pattern="_R2_001.fastq", full.names = TRUE))
+#Extract sample names, assuming filenames have format: SAMPLENAME_XXX.fastq
+sample.names<- sapply(strsplit(basename(fnFs), "_"), `[`, 1)
+sample.names<- sapply(strsplit(basename(fnRs), "_"), `[`, 1)
+
+filtFs<- file.path(path, "filtered", paste0(sample.names, "_F_filt.fastq"))
+filtRs<- file.path(path, "filtered", paste0(sample.names, "_R_filt.fastq"))
+names(filtFs)<- sample.names
+names(filtRs)<- sample.names
+
+out<- filterAndTrim(fnFs, filtFs, fnRs, filtRs,
+                     maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
+                     maxLen = 100, compress=TRUE, multithread=TRUE,matchIDs=F) # On Windows set multithread=FALSE #,trimLeft = 18, trimRight = 20
+head(out)
+
+errF<- learnErrors(filtFs, multithread=TRUE)
+errR<- learnErrors(filtRs, multithread=TRUE)
+
+dadaFs<- dada(filtFs, err=errF, multithread=TRUE)
+dadaRs<- dada(filtRs, err=errR, multithread=TRUE)
+
+#Merge paired end
+mergers<- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose=TRUE)
+#Inspect the merger data.frame from the first sample
+head(mergers[[1]])
+
+seqtab<- makeSequenceTable(mergers)
+dim(seqtab)
+
+#Inspect distribution of sequence lengths
+table(nchar(getSequences(seqtab)))
+
+seqtab.nochim<- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
+dim(seqtab.nochim)
+
+sum(seqtab.nochim)/sum(seqtab)
+
+#Track reads through pipeline
+getN<- function(x) sum(getUniques(x))
+track<- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
+#If processing a single sample, remove the sapply calls: e.g. replace sapply(dadaFs, getN) with getN(dadaFs)
+colnames(track)<- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nonchim")
+rownames(track)<- sample.names
+head(track)
+
+#Assign taxonomy
+#Eukaryota;Chordata;Actinopteri;Anguilliformes;Anguillidae;Anguilla;Anguilla anguilla
+
+ref.fasta<- "~/Cilento/16S/16S_seqs_DB_WithTaxonomy.fasta"
+taxa16S_S177<- assignTaxonomy(seqtab.nochim[1,], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
+taxa16S_S178<- assignTaxonomy(seqtab.nochim[2,], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
+taxa16S_S179<- assignTaxonomy(seqtab.nochim[3,], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
+taxa16S_S180<- assignTaxonomy(seqtab.nochim[4,], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
+taxa16S_S181<- assignTaxonomy(seqtab.nochim[5,], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
+taxa16S_S182<- assignTaxonomy(seqtab.nochim[6,], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
+taxa16S_S183<- assignTaxonomy(seqtab.nochim[7,], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
+taxa16S_S184<- assignTaxonomy(seqtab.nochim[8,], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
+
+write.csv(data.frame(taxa16S_S177),"S177_16S_dada2_assignmentMinBoot50boot2.csv")
+write.csv(data.frame(taxa16S_S178),"S178_16S_dada2_assignmentMinBoot50boot2.csv")
+write.csv(data.frame(taxa16S_S179),"S179_16S_dada2_assignmentMinBoot50boot2.csv")
+write.csv(data.frame(taxa16S_S180),"S180_16S_dada2_assignmentMinBoot50boot2.csv")
+write.csv(data.frame(taxa16S_S181),"S181_16S_dada2_assignmentMinBoot50boot2.csv")
+write.csv(data.frame(taxa16S_S182),"S182_16S_dada2_assignmentMinBoot50boot2.csv")
+write.csv(data.frame(taxa16S_S183),"S183_16S_dada2_assignmentMinBoot50boot2.csv")
+write.csv(data.frame(taxa16S_S184),"S184_16S_dada2_assignmentMinBoot50boot2.csv")
