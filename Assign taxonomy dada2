@@ -1,5 +1,7 @@
 #This script is to assign taxonomy from a 16S db with dada2 R package
 
+#For the 12S the script is the same but pay attention to file names
+
 setwd("~/Cilento/16S")
 path<- "~/Cilento/16S"
 
@@ -9,6 +11,10 @@ fnRs<- sort(list.files(path, pattern="_R2_001.fastq", full.names = TRUE))
 sample.names<- sapply(strsplit(basename(fnFs), "_"), `[`, 1)
 sample.names<- sapply(strsplit(basename(fnRs), "_"), `[`, 1)
 
+plotQualityProfile(fnFs[1:2])
+plotQualityProfile(fnRs[1:2])
+
+#Place filtered files in filtered/ subdirectory
 filtFs<- file.path(path, "filtered", paste0(sample.names, "_F_filt.fastq"))
 filtRs<- file.path(path, "filtered", paste0(sample.names, "_R_filt.fastq"))
 names(filtFs)<- sample.names
@@ -16,12 +22,14 @@ names(filtRs)<- sample.names
 
 out<- filterAndTrim(fnFs, filtFs, fnRs, filtRs,
                      maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
-                     maxLen = 100, compress=TRUE, multithread=TRUE,matchIDs=F) # On Windows set multithread=FALSE #,trimLeft = 18, trimRight = 20
+                     maxLen = 100, compress=TRUE, multithread=TRUE,matchIDs=F) #On Windows set multithread=FALSE #,trimLeft = 18, trimRight = 20
 head(out)
 
+#Learn the error rates
 errF<- learnErrors(filtFs, multithread=TRUE)
 errR<- learnErrors(filtRs, multithread=TRUE)
 
+#Sample inference
 dadaFs<- dada(filtFs, err=errF, multithread=TRUE)
 dadaRs<- dada(filtRs, err=errR, multithread=TRUE)
 
@@ -30,12 +38,14 @@ mergers<- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose=TRUE)
 #Inspect the merger data.frame from the first sample
 head(mergers[[1]])
 
+#Construct sequence table
 seqtab<- makeSequenceTable(mergers)
 dim(seqtab)
 
 #Inspect distribution of sequence lengths
 table(nchar(getSequences(seqtab)))
 
+#Remove chimeras
 seqtab.nochim<- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
 dim(seqtab.nochim)
 
@@ -53,14 +63,14 @@ head(track)
 #Eukaryota;Chordata;Actinopteri;Anguilliformes;Anguillidae;Anguilla;Anguilla anguilla
 
 ref.fasta<- "~/Cilento/16S/16S_seqs_DB_WithTaxonomy.fasta"
-taxa16S_S177<- assignTaxonomy(seqtab.nochim[1,], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
-taxa16S_S178<- assignTaxonomy(seqtab.nochim[2,], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
-taxa16S_S179<- assignTaxonomy(seqtab.nochim[3,], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
-taxa16S_S180<- assignTaxonomy(seqtab.nochim[4,], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
-taxa16S_S181<- assignTaxonomy(seqtab.nochim[5,], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
-taxa16S_S182<- assignTaxonomy(seqtab.nochim[6,], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
-taxa16S_S183<- assignTaxonomy(seqtab.nochim[7,], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
-taxa16S_S184<- assignTaxonomy(seqtab.nochim[8,], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
+taxa16S_S177<- assignTaxonomy(seqtab.nochim[1,][seqtab.nochim[1,]>0], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
+taxa16S_S178<- assignTaxonomy(seqtab.nochim[2,][seqtab.nochim[2,]>0], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
+taxa16S_S179<- assignTaxonomy(seqtab.nochim[3,][seqtab.nochim[3,]>0], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
+taxa16S_S180<- assignTaxonomy(seqtab.nochim[4,][seqtab.nochim[4,]>0], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
+taxa16S_S181<- assignTaxonomy(seqtab.nochim[5,][seqtab.nochim[5,]>0], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
+taxa16S_S182<- assignTaxonomy(seqtab.nochim[6,][seqtab.nochim[6,]>0], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
+taxa16S_S183<- assignTaxonomy(seqtab.nochim[7,][seqtab.nochim[7,]>0], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
+taxa16S_S184<- assignTaxonomy(seqtab.nochim[8,][seqtab.nochim[8,]>0], ref.fasta, multithread=TRUE, taxLevels = c("Kingdom","Phylum","Class","Family","Order","Genus","species"),tryRC=T, minBoot=50,outputBootstraps=T)
 
 write.csv(data.frame(taxa16S_S177),"S177_16S_dada2_assignmentMinBoot50boot2.csv")
 write.csv(data.frame(taxa16S_S178),"S178_16S_dada2_assignmentMinBoot50boot2.csv")
