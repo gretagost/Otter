@@ -1,0 +1,60 @@
+#This script is for prepare a database for 16S and 12S for otter's diet with metabarcoding analysis
+
+#16S
+# install.packages("rentrez")
+library(rentrez)
+
+#Let's get some lizard sequences
+16SdbSpraint <- "Homo sapiens[Organism] OR Leuciscus cephalus[Organism] OR Anguilla anguilla[Organism] 
+OR Cyprinus carpio[Organism] OR Barbus barbus[Organism] OR Salmo trutta[Organism] OR 
+Salmo macrostigma[Organism] OR Salmo fario[Organism] OR Ictalurus melas[Organism] OR 
+Perca fluviatilis[Organism] OR Ameiurus melas[Organism] OR Alosa fallax[Organism] OR 
+Alburnus[Organism] OR Alburnus arborella[Organism] OR Lampetra planeri[Organism] OR 
+Barbus[Organism] OR Gobio gobio[Organism] OR Rutilus rubilio[Organism] OR Lepomis gibbosus[Organism] 
+OR Salaria fluviatilis[Organism] OR Scomber scombrus[Organism] OR Merluccius merluccius[Organism] 
+OR Sparus aurata[Organism] OR Dicentrarchus labrax[Organism] OR Solea solea[Organism] OR 
+Mugil cephalus[Organism] OR Sarpa salpa[Organism] OR Umbrina[Organism] OR Diplodus sargus[Organism] 
+OR Sardina pilchardus[Organism] OR Mullus surmuletus[Organism] OR Engraulis encrasicolus[Organism] 
+OR Chelidonichthys lucerne[Organism] OR Glis glis[Organism] OR Eliomys quercinus[Organism] OR 
+Clethrionomys glareolus[Organism] OR Myodes glareolus[Organism] OR Apodemus sylvaticus[Organism] OR 
+Apodemus flavicollis[Organism] OR Lutra lutra[Organism] OR Bombina pachypus[Organism] OR 
+Bufo bufo[Organism] OR Podarcis siculus[Organism] OR Lacerta viridis[Organism] OR 
+Elaphe quatuorlineata[Organism] OR Coluber[Organism] OR Hierophis viridiflavus[Organism] OR 
+Vipera aspis[Organism] OR Natrix natrix[Organism] OR Austropotamobius pallipes[Organism] OR 
+Potamon fluviatilis[Organism] OR Potamon fluviatile[Organism] OR Procambarus clarkii[Organism] OR 
+Rana italica[Organism] OR Rana dalmatina[Organism] OR Rana temporaria[Organism] OR 
+Pelophylax esculentus[Organism] OR Mollusca[Organism] AND 16S[rRNA] AND (50[SLEN]:2000[SLEN])"
+
+spraint_search<- entrez_search(db="nuccore", term=dbSpraint,use_history=TRUE)
+spraint_search
+spraint_search$ids #Gives you the NCBI ids
+
+spraint_search_seqs<- entrez_fetch(db="nuccore", web_history=spraint_search$web_history, rettype="fasta")
+summary(spraint_search_seqs)
+
+write(spraint_search_seqs, "spraint_search_seqs16S.fasta", sep="\n") #Gets sequence to a file
+
+#We can read our fasta file using seqinr package
+library(seqinr)
+db16s <- read.fasta(file = "spraint_search_seqs16S.fasta", seqtype = "DNA", as.string = TRUE, forceDNAtolower = FALSE)
+db16s # you can also check the .fasta file in the working folder
+db16s_names <- attr(db16s, "name")
+
+library(taxonomizr)
+#Note this will require a lot of hard drive space, bandwidth and time to process all the data from NCBI
+prepareDatabase('accessionTaxa.sql')
+ids<-accessionToTaxa(blastAccessions, 'accessionTaxa.sql')
+taxo<-getTaxonomy(ids,'accessionTaxa.sql')
+
+head(taxo)
+summary(as.factor(taxo))
+
+taxa.df<-data.frame(taxo)
+head(taxa.df)
+
+write.csv(taxa.df,"taxaDF.csv")
+taxo_tames<-paste(taxa.df[,1],taxa.df[,2],taxa.df[,3],taxa.df[,4],taxa.df[,5],taxa.df[,6],taxa.df[,7],sep=";")
+species_tames<-paste(db16s_names, taxa.df[,6],taxa.df[,7],sep=" ")
+
+write.fasta(sequences = db16s, names = taxo_tames, nbchar = 10, file.out = "16S_seqs_DB_WithTaxonomy.fasta")
+write.fasta(sequences = db16s, names = species_tames, nbchar = 10, file.out = "16S_seqs_DB_WithSpecies.fasta")
