@@ -1,0 +1,21 @@
+#NeEstimator v. 2.0
+
+Download the software from http://www.molecularfisherieslaboratory.com.au/downloadables/#downloads
+
+Then, you will have three executable files, such as:
+1. Ne2-1.exe for windows
+2. Ne2-1M for Mac
+3. Ne2-1L for Linux
+
+#How to run the Mac version
+
+1. Customize with your own data the input file named "8Ne50.gen" that is a GENEPOP format file;
+2. Copy as path the input file and paste it in the first line of the executable file;
+3. Which method(s) to run?
+  1 = Linkage Disequlibrium
+  2 = Heterozygote Excess
+  4 = Molecular Coancestry
+  8 = Temporal
+For multiple methods, enter their sum
+(for all methods, enter 15 or larger): 
+4. Output will be written to file: 8Ne50Ne.txt. and 8Ne50NoDat.txt
